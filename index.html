@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Fix & Flip Kalkulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --accent:#00C853; }
+  body{background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;line-height:1.4;}
+  .container{max-width:600px;margin:0 auto;position:relative;}
+  h1{color:var(--accent);text-align:center;margin:0 0 20px;font-size:28px;}
+  .metric{text-align:center;margin-bottom:30px;}
+  .metric .value{font-size:48px;font-weight:bold;margin-top:4px;}
+  .cost-card{background:#111;padding:16px;border-radius:20px;margin-bottom:20px;}
+  .cost-header{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;}
+  .cost-header input[type=text]{width:100%;background:#222;border:none;border-radius:12px;color:#fff;padding:6px 10px;}
+  .cost-header input[type=number]{width:110px;background:#222;border:none;border-radius:12px;color:#fff;padding:6px 10px;text-align:right;}
+  .cost-header button{background:transparent;border:none;color:#ff5252;font-size:20px;cursor:pointer;}
+  .slider{width:100%;accent-color:var(--accent);margin-top:10px;}
+  .add-btn{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;color:#000;font-size:32px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);}
+  .total{color:#888;text-align:center;margin-top:-12px;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Fix & Flip</h1>
+  <div class="metric">
+    <div>Marge</div>
+    <div id="marginPercent" class="value">0 %</div>
+    <div id="marginEuro" style="color:#aaa;">0 €</div>
+    <div id="totalCost" class="total"></div>
+  </div>
+  <div id="list"></div>
+</div>
+<button class="add-btn" onclick="showAddDialog()">+</button>
+
+<script>
+let costs=[
+  {label:'Kaufpreis', value:210000, min:0, max:1500000},
+  {label:'Kaufnebenkosten', value:16800, min:0, max:300000},
+  {label:'Sanierungskosten', value:10000, min:0, max:700000},
+  {label:'Sonstige Kosten', value:0, min:0, max:300000}
+];
+let salePrice=170000;
+
+function fmt(n){return n.toLocaleString('de-DE');}
+function cur(n){return n.toLocaleString('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:0});}
+function refresh(){
+  const list=document.getElementById('list');
+  list.innerHTML='';
+  costs.forEach((c,i)=>{list.appendChild(renderCost(c,i));});
+  list.appendChild(renderSale());
+  calc();
+}
+function renderCost(c,idx){
+  const card=document.createElement('div');
+  card.className='cost-card';
+  card.innerHTML=`
+    <div class="cost-header">
+      <input type="text" value="${c.label}" onchange="costs[${idx}].label=this.value;refresh()">
+      <input type="number" value="${c.value}" min="${c.min}" max="${c.max}" step="1000"
+             onchange="costs[${idx}].value=parseInt(this.value)||0;refresh()">
+      <button onclick="removeCost(${idx})">&times;</button>
+    </div>
+    <input type="range" class="slider" min="${c.min}" max="${c.max}" step="1000" value="${c.value}"
+           oninput="costs[${idx}].value=parseInt(this.value);refresh()">`;
+  return card;
+}
+function renderSale(){
+  const card=document.createElement('div');
+  card.className='cost-card';
+  card.innerHTML=`
+    <div class="cost-header">
+      <span style="flex:1 1 auto;font-weight:bold">Verkaufspreis</span>
+      <input type="number" value="${salePrice}" min="0" max="2000000" step="1000"
+             onchange="salePrice=parseInt(this.value)||0;refresh()">
+      <span></span>
+    </div>
+    <input type="range" class="slider" min="0" max="2000000" step="1000" value="${salePrice}"
+           oninput="salePrice=parseInt(this.value);refresh()">`;
+  return card;
+}
+function calc(){
+  const total=costs.reduce((s,c)=>s+c.value,0);
+  const diff=salePrice-total;
+  const percent= total>0? (diff/total*100).toFixed(2):'0.00';
+  document.getElementById('marginPercent').textContent=percent+' %';
+  document.getElementById('marginPercent').style.color= diff>=0? '#00e676':'#ff5252';
+  document.getElementById('marginEuro').textContent=cur(diff);
+  document.getElementById('marginEuro').style.color= diff>=0? '#00e676':'#ff5252';
+  document.getElementById('totalCost').textContent='Gesamtkosten: '+cur(total);
+}
+function removeCost(i){costs.splice(i,1);refresh();}
+function showAddDialog(){
+  const label=prompt('Bezeichnung der Kosten?');
+  if(label===null)return;
+  const valueStr=prompt('Betrag in €? (Zahl)');
+  if(valueStr===null)return;
+  const value=parseInt(valueStr.replace(/\D/g,''))||0;
+  costs.push({label:label||'Kosten',value, min:0,max:2000000});
+  refresh();
+}
+refresh();
+</script>
+</body>
+</html>
